@@ -3,9 +3,11 @@ import sqlite3 from "sqlite3";
 import { Database, ISqlite, Statement, open } from "sqlite";
 import * as url from "url";
 import { z } from "zod";
+import cors from "cors";
 
 let app = express();
 app.use(express.json());
+app.use(cors());
 
 let __dirname: string = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile: string = `${__dirname}database.db`;
