@@ -15,11 +15,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #ffffff;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #c4c4c4;
 }
 
 body {
@@ -29,7 +29,7 @@ body {
   place-items: center;
   align-items: baseline;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 85vh;
 }
 
 h1 {
@@ -49,7 +49,7 @@ button {
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #000000;
 }
 button:focus,
 button:focus-visible {
@@ -68,8 +68,6 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
-
-
 
 
 table {
@@ -101,4 +99,17 @@ select {
 nav {
   display: flex;
   gap: 3vw;
+}
+
+.tables-container {
+  display:flex;
+  gap: 3vw;
+  padding-bottom: 7%;
+}
+
+.add-container {
+  display: flex;
+  gap: 2vw;
+  height: 5rem;
+  align-items: center;
 }

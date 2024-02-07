@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { genres, getAxiosErrorMessages } from "./utils"
+import { Button, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 
 axios.defaults.baseURL = "https://localhost:3000"
 
@@ -29,51 +30,29 @@ function AddBook() {
     return (
         <>
             <h2>Add a book:</h2>
-            <label>
-                Author ID: 
-                <input
-                    type="number"
-                    value={authorID}
-                    onChange={(e) => {
-                        setAuthorID(parseInt(e.target.value));
-                    }}
-                ></input>
-            </label>
-            <label>
-                Title: 
-                <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => {
-                        setTitle(e.target.value);
-                    }}
-                ></input>
-            </label>
-            <label>
-                Publication Year: 
-                <input
-                    type="number"
-                    value={pubYear}
-                    onChange={(e) => {
-                        setPubYear(parseInt(e.target.value));
-                    }}
-                ></input>
-            </label>
-            <label>
-                Genre: 
-                <select
-                    value={genre}
-                    onChange={(e) => {
-                        setGenre(e.target.value);
-                    }}
-                >
-                    <option value="">Select a genre</option>
-                    {genres.map((genre, i) => (
-                        <option key={i} value={genre}>{genre}</option>
-                    ))}
-                </select>
-            </label>
-            <button onClick={handleSubmit}>Add Book</button>
+            <div className="add-container">
+                <TextField id="author-id-input" label="authorID" variant="standard" type="number" value={authorID} onChange={(e) => setAuthorID(parseInt(e.target.value))}/>
+                <TextField id="title-input" label="Title" variant="standard" type="text" value={title} onChange={(e) => setTitle(e.target.value)}/>
+                <TextField id="pub-year-input" label="Publication Year" variant="standard" type="number" value={pubYear} onChange={(e) => setPubYear(parseInt(e.target.value))}/>
+                <FormControl sx={{ minWidth: 120 }}>
+                    <InputLabel id="book-genre-select-label">Genre</InputLabel>
+                    <Select
+                        labelId="book-genre-select-label"
+                        id="book-genre-select"
+                        label="Genre"
+                        value={genre}
+                        onChange={(e) => {
+                            setGenre(e.target.value);
+                        }}
+                    >
+                        <MenuItem value={""}>Select a genre</MenuItem>
+                        {genres.map((genre, i) => (
+                            <MenuItem key={i} value={genre}>{genre}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <Button variant="contained" onClick={handleSubmit}>Add Book</Button>
+            </div>
             <div className="error-message">
                 {messages.map((message, i) => (
                     <div key={i}>{message}</div>

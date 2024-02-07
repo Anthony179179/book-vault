@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NewAuthor, getAxiosErrorMessages } from "./utils";
 import axios from "axios";
+import { Button, TextField } from "@mui/material";
 
 axios.defaults.baseURL = "http://localhost:3000";
 
@@ -26,29 +27,11 @@ function AddAuthor() {
     return (
         <>
             <h2>Add an Author:</h2>
-            <label>
-                Name: 
-                <input
-                    type="text"
-                    name="name"
-                    value={name}
-                    onChange={(e) => {
-                        setName(e.target.value);
-                    }}
-                ></input>
-            </label>
-            <label>
-                Bio: 
-                <input
-                    type="text"
-                    name="bio"
-                    value={bio}
-                    onChange={(e) => {
-                        setBio(e.target.value);
-                    }}
-                ></input>
-            </label>
-            <button onClick={handleSubmit}>Add Author</button>
+            <div className="add-container">
+                <TextField id="name-input" label="Name" variant="standard" type="text" value={name} onChange={(e) => setName(e.target.value)}/>
+                <TextField id="bio-input" label="Bio" variant="standard" type="text" value={bio} onChange={(e) => setBio(e.target.value)}/>
+                <Button variant="contained" onClick={handleSubmit}>Add Author</Button>
+            </div>
             <div className="error-message">
                 {messages.map((message, i) => (
                     <div key={i}>{message}</div>
