@@ -106,6 +106,20 @@ let newBookBodySchema = z.object({
     genre: z.enum(genres)
 })
 
+let bookBodySchema = z.object({
+    id: z.number(),
+    author_id: z.number(),
+    title: z.string(),
+    pub_year: z.number(),
+    genre: z.enum(genres)
+})
+
+let authorBodySchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    bio: z.string()
+})
+
 function parseError(zodError: z.ZodError): string[] {
     let { formErrors, fieldErrors } = zodError.flatten();
     return [
@@ -259,6 +273,38 @@ app.delete("/api/books/:id", async (req: DeleteRequest, res) => {
         return res.status(400).json({ error: err.toString() });
     }
     return res.sendStatus(204);
+})
+
+app.put("/api/books/:id", async (req, res) => {
+    try {
+        let parseResult = bookBodySchema.safeParse(req.body);
+        if (!parseResult.success) {
+            throw parseError(parseResult.error);
+        }
+        let newBook: Book = req.body;
+        await db.run(`UPDATE BOOKS SET TITLE='${newBook.title}', AUTHOR_ID='${newBook.author_id}', PUB_YEAR='${newBook.pub_year}', GENRE='${newBook.genre}' WHERE ID='${req.params.id}'`);
+        let resBook: Book | undefined = await db.get(`SELECT * FROM BOOKS WHERE ID='${newBook.id}'`);
+        return res.status(201).json(resBook);
+    } catch (error) {
+        let err = error as Object;
+        return res.status(400).json({ error: err.toString() });
+    }
+})
+
+app.put("/api/authors/:id", async (req, res) => {
+    try {
+        let parseResult = authorBodySchema.safeParse(req.body);
+        if (!parseResult.success) {
+            throw parseError(parseResult.error);
+        }
+        let newAuthor: Author = req.body;
+        await db.run(`UPDATE AUTHORS SET NAME='${newAuthor.name}', BIO='${newAuthor.bio}' WHERE ID='${req.params.id}'`);
+        let resAuthor: Author | undefined = await db.get(`SELECT * FROM AUTHORS WHERE ID='${newAuthor.id}'`);
+        return res.status(201).json(resAuthor);
+    } catch (error) {
+        let err = error as Object;
+        return res.status(400).json({ error: err.toString() });
+    }
 })
 
 let port: number = 3000;

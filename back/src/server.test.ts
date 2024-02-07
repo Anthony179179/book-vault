@@ -239,3 +239,79 @@ test("DELETE /api/books/invalidID returns error", async () => {
         expect(response.status).toEqual(404);
     }
 }) 
+
+test("PUT /api/books/validID works as expected", async () => {
+    let originalBook: Book = (await axios.get("/api/books/2")).data;
+    let newBook: Book = { ...originalBook, genre: "mystery" };
+    let putResponse: AxiosResponse<Book> = await axios.put("/api/books/2", newBook);
+    expect(putResponse.status).toEqual(201);
+    expect(putResponse.data).toEqual(newBook);
+})
+
+test("PUT /api/books/validID with invalid shape returns error", async () => {
+    let originalBook: Book = (await axios.get("/api/books/2")).data;
+    let newBook = { ...originalBook, genre: "abcde" };
+    try {
+        await axios.put("/api/books/2", newBook);
+    } catch (error) {
+        let errorObj = error as AxiosError;
+        if (errorObj.response === undefined) {
+            throw Error("Server never sent response");
+        }
+        let { response } = errorObj;
+        expect(response.status).toEqual(400);
+    }
+})
+
+test("PUT /api/books/invalidID with valid shape returns error", async () => {
+    let originalBook: Book = (await axios.get("/api/books/2")).data;
+    let newBook = { ...originalBook, genre: "fantasy" };
+    try {
+        await axios.put("/api/books/1799", newBook);
+    } catch (error) {
+        let errorObj = error as AxiosError;
+        if (errorObj.response === undefined) {
+            throw Error("Server never sent response");
+        }
+        let { response } = errorObj;
+        expect(response.status).toEqual(400);
+    }
+})
+
+test("PUT /api/authors/validID works as expected", async () => {
+    let originalAuthor: Author = (await axios.get("/api/authors/1")).data;
+    let newAuthor: Author = { ...originalAuthor, bio: "new bio" };
+    let putResponse: AxiosResponse<Author> = await axios.put("/api/authors/1", newAuthor);
+    expect(putResponse.status).toEqual(201);
+    expect(putResponse.data).toEqual(newAuthor);
+})
+
+test("PUT /api/authors/validID with invalid shape returns error", async () => {
+    let originalAuthor: Author = (await axios.get("/api/authors/1")).data;
+    let newAuthor = { ...originalAuthor, genre: "author genre???" };
+    try {
+        await axios.put("/api/books/2", newAuthor);
+    } catch (error) {
+        let errorObj = error as AxiosError;
+        if (errorObj.response === undefined) {
+            throw Error("Server never sent response");
+        }
+        let { response } = errorObj;
+        expect(response.status).toEqual(400);
+    }
+})
+
+test("PUT /api/authors/invalidID with valid shape returns error", async () => {
+    let originalAuthor: Author = (await axios.get("/api/authors/1")).data;
+    let newAuthor = { ...originalAuthor, bio: "new bio" };
+    try {
+        await axios.put("/api/authors/1799", newAuthor);
+    } catch (error) {
+        let errorObj = error as AxiosError;
+        if (errorObj.response === undefined) {
+            throw Error("Server never sent response");
+        }
+        let { response } = errorObj;
+        expect(response.status).toEqual(400);
+    }
+})
