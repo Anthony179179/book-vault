@@ -29,7 +29,9 @@ app.use(cors({
     credentials: true,
     origin: "http://localhost:5173",
     optionsSuccessStatus: 200,
-  }));
+}));
+
+app.use(express.static('./../front'));
 
 let __dirname: string = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile: string = `${__dirname}database.db`;
