@@ -13,6 +13,18 @@ CREATE TABLE authors (
     bio TEXT
 );
 
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    username TEXT,
+    password TEXT
+);
+
+CREATE TABLE tokens (
+    id INTEGER PRIMARY KEY,
+    username TEXT,
+    token TEXT
+);
+
 INSERT INTO authors(id, name, bio) VALUES(1, 'Rebecca Wilson', 'My favourite');
 INSERT INTO authors(id, name, bio) VALUES(2, 'Laura Gallego', 'A classic');
 INSERT INTO books(id, author_id, title, pub_year, genre) VALUES(1, 2, 'Alas de Fuego', '2004', 'fantasy');

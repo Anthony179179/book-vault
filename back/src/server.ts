@@ -1,13 +1,35 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, RequestHandler, CookieOptions } from "express";
 import sqlite3 from "sqlite3";
 import { Database, ISqlite, Statement, open } from "sqlite";
 import * as url from "url";
 import { z } from "zod";
 import cors from "cors";
+import cookieParser from "cookie-parser";
+import crypto from "crypto";
+import * as argon2 from "argon2";
+import { rateLimit } from 'express-rate-limit'
+import helmet from 'helmet'
+import { EmptyResponse, MessageResponse, Error, Genre, Book, Author, NewBook, NewAuthor, BookResponse, BooksResponse, AuthorResponse, AuthorsResponse, AuthorsGetRequest, AuthorRequest, BooksGetRequest, BookRequest, DeleteRequest, newAuthorBodySchema, newBookBodySchema, bookBodySchema, authorBodySchema, genres, loginSchema } from "./types.js"
 
-let app = express();
+const app = express();
+
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
+	standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+	// store: ... , // Use an external store for consistency across multiple server instances.
+})
+
+app.use(limiter);
+app.use(helmet());
+app.use(cookieParser());
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    credentials: true,
+    origin: "http://localhost:5173",
+    optionsSuccessStatus: 200,
+  }));
 
 let __dirname: string = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile: string = `${__dirname}database.db`;
@@ -17,108 +39,106 @@ let db: Database = await open({
 });
 await db.get("PRAGMA foreign_keys = ON");
 
-export interface Error {
-    error: string | string[];
+let cookieOptions: CookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+};
+
+function makeToken() {
+    return crypto.randomBytes(32).toString("hex");
 }
 
-type Genre = "romance" | "mystery" | "fiction" | "fantasy" | "adventure" | "action" | "science fiction" | "biography";
-
-export interface Book {
-    id: number,
-    author_id: number,
-    title: string,
-    pub_year: number,
-    genre: Genre
-}
-
-export interface NewBook {
-    author_id: number,
-    title: string,
-    pub_year: number,
-    genre: Genre
-}
-
-export interface Author {
-    id: number,
-    name: string,
-    bio: string
-}
-
-export interface NewAuthor {
-    name: string,
-    bio: string
-}
-
-type BookResponse = Response<Book | Error>;
-type AuthorResponse = Response<Author | Error>;
-type BooksResponse = Response<Book[] | Error>;
-type AuthorsResponse = Response<Author[] | Error>;
-
-interface BooksGetRequest extends Request {
-    query: {
-        id: string,
-        author_id: string,
-        title: string,
-        pub_year: string,
-        genre: Genre
-    },
-    params: {
-        id: string
+let authorize: RequestHandler = async (req: Request, res, next) => {
+    let { token } = req.cookies;
+    if (token === undefined) {
+        return res.status(403).json({ message: "Unauthorized" });
     }
-}
-
-interface AuthorsGetRequest extends Request {
-    query: {
-        id: string,
-        name: string,
-        bio: string
-    },
-    params: {
-        id: string
+    let selectedToken = await db.all(`SELECT TOKEN FROM TOKENS WHERE TOKEN='${token}'`);
+    if (selectedToken === undefined) {
+        return res.status(403).json({ message: "Unauthorized" });
     }
-}
+    next();
+};
 
-interface AuthorRequest extends Request {
-    body: NewAuthor
-}
-
-interface BookRequest extends Request {
-    body: NewBook
-}
-
-interface DeleteRequest extends Request {
-    params: {
-        id: string
+app.post("/api/login", async (req: Request, res: Response<MessageResponse>) => {
+    let parseResult = loginSchema.safeParse(req.body);
+    if (!parseResult.success) {
+        return res
+            .status(400)
+            .json({ message: "Zod Type Error: Username or password invalid" });
     }
-}
+    let { username, password } = parseResult.data;
+    let token: string;
 
-let genres = ["romance", "mystery", "fiction", "fantasy", "adventure", "action", "science fiction", "biography"] as const;
+    if (username === await db.get<string>(`SELECT USERNAME FROM TOKENS WHERE USERNAME='${username}'`)) {
+        throw new Error();
+    }
+    
+    try {
+        let retrievedUsername = (await db.get(`SELECT USERNAME FROM USERS WHERE USERNAME='${username}'`)).username;
+        let retrievedPassword = (await db.get(`SELECT PASSWORD FROM USERS WHERE USERNAME='${retrievedUsername}'`)).password;
+        if (retrievedUsername === undefined || !(await argon2.verify(retrievedPassword, password))) {
+            throw new Error();
+        }
+        token = makeToken();
+        let statement: Statement = await db.prepare("INSERT INTO TOKENS(id, username, token) VALUES(?, ?, ?)");
+        await statement.bind([null, username, token]);
+        await statement.run();
 
-let newAuthorBodySchema = z.object({
-    name: z.string(),
-    bio: z.string()
+        return res.status(200).cookie("token", token, cookieOptions).json();
+    } catch (err) {
+        let error = err as Object;
+        return res.status(400).json({ message: error.toString() });
+    }
+
+});
+app.post("/api/logout", async (req: Request, res: Response<EmptyResponse>) => {
+    let { token } = req.cookies;
+    if (token === undefined) {
+        return res.send();
+    }
+    let queriedToken: string | undefined = await db.get(`SELECT TOKEN FROM TOKENS WHERE TOKEN='${token}'`);
+    if (queriedToken !== undefined) {
+        await db.run(`DELETE FROM TOKENS WHERE TOKEN='${token}'`);
+        return res.clearCookie("token", cookieOptions).send();
+    }
+    return res.send();
+});
+
+app.get("/api/logincheck", async (req, res) => {
+    let { token } = req.cookies;
+    if (token === undefined) {
+        return res.sendStatus(401);
+    }
+    let storedSession: { token: string, username: string } | undefined = await db.get(`SELECT * FROM TOKENS WHERE TOKEN='${token}'`);
+    if (storedSession === undefined || storedSession.token === undefined) {
+        return res.status(401).clearCookie("token", cookieOptions).send();
+    }
+    return res.status(200).send(storedSession.username);
 })
 
-let newBookBodySchema = z.object({
-    author_id: z.number(),
-    title: z.string(),
-    pub_year: z.number(),
-    genre: z.enum(genres)
+app.post("/api/signup", async (req, res) => {
+    // Perform zod schema validation
+    let { username, password } = req.body;
+    let duplicate: string | undefined = await db.get(`SELECT USERNAME FROM USERS WHERE USERNAME='${username}'`);
+    if (duplicate === undefined) {
+        try {
+            let hashedPassword = await argon2.hash(password);
+            let statement: Statement = await db.prepare("INSERT INTO USERS(id, username, password) VALUES(?, ?, ?)");
+            await statement.bind([null, username, hashedPassword]);
+            await statement.run();
+            res.sendStatus(200);
+        } catch (err) {
+            let error = err as Object;
+            res.status(400).json({ error: error.toString() });
+        }
+    }
+    else {
+        res.status(400).json({ error: "Username already exists" });
+    }
 })
 
-let bookBodySchema = z.object({
-    id: z.number(),
-    author_id: z.number(),
-    title: z.string(),
-    pub_year: z.number(),
-    genre: z.enum(genres)
-})
-
-let authorBodySchema = z.object({
-    id: z.number(),
-    name: z.string(),
-    bio: z.string()
-})
 
 function parseError(zodError: z.ZodError): string[] {
     let { formErrors, fieldErrors } = zodError.flatten();
@@ -197,7 +217,7 @@ app.get("/api/authors/:id", async (req, res: AuthorResponse) => {
     return res.status(200).json(result[0]);
 })
 
-app.post("/api/books", async (req: BookRequest, res: BookResponse) => {
+app.post("/api/books", authorize, async (req: BookRequest, res: BookResponse) => {
     let newBook: NewBook;
     let insertedBook: Book;
     try {
@@ -222,7 +242,7 @@ app.post("/api/books", async (req: BookRequest, res: BookResponse) => {
     return res.status(201).json(insertedBook);
 });
 
-app.post("/api/authors", async (req: AuthorRequest, res: AuthorResponse) => {
+app.post("/api/authors", authorize, async (req: AuthorRequest, res: AuthorResponse) => {
     let newAuthor: NewAuthor;
     let insertedAuthor: Author;
     try {
@@ -243,7 +263,7 @@ app.post("/api/authors", async (req: AuthorRequest, res: AuthorResponse) => {
     return res.status(201).json(insertedAuthor);
 })
 
-app.delete("/api/authors/:id", async (req: DeleteRequest, res) => {
+app.delete("/api/authors/:id", authorize, async (req: DeleteRequest, res) => {
     try {
         let exists: Author[] = await db.all(`SELECT * FROM AUTHORS WHERE ID=${req.params.id}`);
         if (exists.length == 0) {
@@ -261,7 +281,7 @@ app.delete("/api/authors/:id", async (req: DeleteRequest, res) => {
     return res.sendStatus(204);
 })
 
-app.delete("/api/books/:id", async (req: DeleteRequest, res) => {
+app.delete("/api/books/:id", authorize, async (req: DeleteRequest, res) => {
     try {
         let exists: Book[] = await db.all(`SELECT * FROM BOOKS WHERE ID=${req.params.id}`);
         if (exists.length == 0) {
@@ -275,7 +295,7 @@ app.delete("/api/books/:id", async (req: DeleteRequest, res) => {
     return res.sendStatus(204);
 })
 
-app.put("/api/books/:id", async (req, res) => {
+app.put("/api/books/:id", authorize, async (req, res) => {
     try {
         let parseResult = bookBodySchema.safeParse(req.body);
         if (!parseResult.success) {
@@ -291,7 +311,7 @@ app.put("/api/books/:id", async (req, res) => {
     }
 })
 
-app.put("/api/authors/:id", async (req, res) => {
+app.put("/api/authors/:id", authorize, async (req, res) => {
     try {
         let parseResult = authorBodySchema.safeParse(req.body);
         if (!parseResult.success) {

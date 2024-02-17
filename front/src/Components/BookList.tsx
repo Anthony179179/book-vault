@@ -1,10 +1,11 @@
-import { Book, Author, getAxiosErrorMessages, genres, genre } from "./utils"
-import { useState, useEffect } from "react"
+import { Book, Author, getAxiosErrorMessages, genre } from "./utils"
+import { useState, useEffect, useContext } from "react"
 import axios from "axios";
 
-import { DataGrid, GridColDef, GridRowId, GridRowsProp, useGridApiRef } from '@mui/x-data-grid';
-import { Button, IconButton } from "@mui/material";
+import { DataGrid, GridColDef, GridRowId, GridRowsProp } from '@mui/x-data-grid';
+import { Alert, IconButton, Snackbar } from "@mui/material";
 import { GridDeleteIcon } from "@mui/x-data-grid";
+import { AuthContext } from "./authContext";
 
 
 axios.defaults.baseURL = "http://localhost:3000";
@@ -26,22 +27,45 @@ function BookList() {
 
     let [rowEdits, setRowEdits] = useState<number>(0);
 
-    const bookColumns: GridColDef[] = [
-        { field: 'id', headerName: "id", width: 30},
-        { field: 'title', headerName: 'Title', width: 200, editable: true },
-        { field: 'author', headerName: 'Author', width: 150 },
-        { field: 'pub_year', headerName: 'Publication Year', width: 150, editable: true },
-        { field: 'genre', headerName: 'Genre', width: 90, editable: true },
-        { field: ' ', headerName: ' ', type: "actions", width: 90, editable: true, getActions: ({ id }) => {return [<IconButton onClick={deleteBookRow(id)} aria-label="delete" size="small"><GridDeleteIcon fontSize="inherit" /></IconButton>]} },
-      ];
-    
-    const authorColumns: GridColDef[] = [
+    let [open, setOpen] = useState<boolean>(false);
+
+    const { auth } = useContext(AuthContext);
+
+    let bookColumns: GridColDef[];
+    let authorColumns: GridColDef[];
+
+    if (auth) {
+        bookColumns = [
+            { field: 'id', headerName: "id", width: 30},
+            { field: 'title', headerName: 'Title', width: 200, editable: true },
+            { field: 'author', headerName: 'Author', width: 150 },
+            { field: 'pub_year', headerName: 'Publication Year', width: 150, editable: true },
+            { field: 'genre', headerName: 'Genre', width: 90, editable: true },
+            { field: ' ', headerName: ' ', type: "actions", width: 90, editable: true, getActions: ({ id }) => {return [<IconButton onClick={deleteBookRow(id)} aria-label="delete" size="small"><GridDeleteIcon fontSize="inherit" /></IconButton>]} },
+        ];
+
+        authorColumns = [
+            { field: 'id', headerName: "id", width: 30},
+            { field: 'name', headerName: 'Name', width: 150, editable: true },
+            { field: 'bio', headerName: 'Bio', width: 300, editable: true },
+            { field: ' ', headerName: ' ', type: "actions", width: 90, editable: true, getActions: ({ id }) => {return [<IconButton onClick={deleteAuthorRow(id)} aria-label="delete" size="small"><GridDeleteIcon fontSize="inherit" /></IconButton>]} },
+          ];
+    } else {
+        bookColumns = [
+            { field: 'id', headerName: "id", width: 30},
+            { field: 'title', headerName: 'Title', width: 200, editable: true },
+            { field: 'author', headerName: 'Author', width: 150 },
+            { field: 'pub_year', headerName: 'Publication Year', width: 150, editable: true },
+            { field: 'genre', headerName: 'Genre', width: 90, editable: true },
+          ];
+          
+        authorColumns = [
         { field: 'id', headerName: "id", width: 30},
         { field: 'name', headerName: 'Name', width: 150, editable: true },
         { field: 'bio', headerName: 'Bio', width: 300, editable: true },
-        { field: ' ', headerName: ' ', type: "actions", width: 90, editable: true, getActions: ({ id }) => {return [<IconButton onClick={deleteAuthorRow(id)} aria-label="delete" size="small"><GridDeleteIcon fontSize="inherit" /></IconButton>]} },
-      ];
-    
+        ];
+    }
+
     const deleteBookRow = (id: GridRowId) => async () => {
         try {
             setMessages([]);
@@ -76,9 +100,10 @@ function BookList() {
                 setBooks(newBooks);
                 setAuthors(authorsResponse.data);
                 setMessages([]);
+                auth ? setOpen(false) : setOpen(true);
             } catch (error) {
                 setMessages(getAxiosErrorMessages(error));
-            }           
+            }
         })();
     }, [rowEdits]);
 
@@ -105,6 +130,13 @@ function BookList() {
         }
     }
 
+    const handleClose = (_event: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+        setOpen(false);
+      };
+
     return (
         <>
             <div className="tables-container">
@@ -126,6 +158,16 @@ function BookList() {
                     <div key={i}>{message}</div>
                 ))}
             </div>
+            <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
+                <Alert
+                    onClose={handleClose}
+                    severity="error"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    You're logged out, so changes won't be saved.
+                </Alert>
+            </Snackbar>
         </>
     )
 }

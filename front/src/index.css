@@ -13,13 +13,14 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
+a, #logout {
   font-weight: 500;
   color: #ffffff;
   text-decoration: inherit;
 }
-a:hover {
+a:hover, #logout:hover {
   color: #c4c4c4;
+  cursor: pointer;
 }
 
 body {
@@ -60,9 +61,6 @@ button:focus-visible {
   :root {
     color: #213547;
     background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
   }
   button {
     background-color: #f9f9f9;
@@ -105,6 +103,13 @@ nav {
   display:flex;
   gap: 3vw;
   padding-bottom: 7%;
+}
+
+.container {
+  padding-top: 3vh;
+  display: flex;
+  align-items: center;
+  gap: 2vw;
 }
 
 .add-container {

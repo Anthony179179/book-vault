@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
-import { Author, Book, NewAuthor, NewBook } from "./server.js";
+import { Author, Book, NewAuthor, NewBook } from "./types.js";
 
 let port: number = 3000;
 let host: string = "localhost";

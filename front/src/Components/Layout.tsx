@@ -1,31 +1,41 @@
-import { AppBar } from "@mui/material";
-import { Link, Outlet } from "react-router-dom";
-
-function Header() {
-    return (
-        <>
-            <Link to="/">Home</Link>
-            <Link to="/books">Search for Books</Link>
-            <Link to="/addbook">Add New Book</Link>
-            <Link to="addauthor">Add New Author</Link>
-        </>
-    );
-}
+import { Outlet } from "react-router-dom";
+import NavBar from "./NavBar";
+import AuthProvider from "./useAuth";
+import { useContext } from "react";
+import { AuthContext } from "./authContext";
+import LoggedOutNavBar from "./LoggedOutNavBar";
+import axios from "axios";
 
 function Layout() {
+
+    axios.defaults.validateStatus = () => true;
+    axios.defaults.withCredentials = true;
+
+    function App() {
+
+        const { auth, setAuth } = useContext(AuthContext);
+
+        window.onload = async () => {
+            let res = await axios.get("/api/logincheck");
+            if (res.status !== 401) {
+                setAuth(true);
+            }
+        }
+
+        return (
+            <>
+                {auth ? <NavBar /> : <LoggedOutNavBar />}
+                <main>
+                    <Outlet />
+                </main>
+            </>
+        )
+    }
+    
     return (
-        <>
-            <AppBar position="static" sx={{ display: "flex", flexFlow: "row", alignItems: "center", gap: "4vw", width: "95vw", height: "3rem", paddingLeft: "3vw"}}>
-                <h3>Book Database</h3>
-                <Link to="/">Home</Link>
-                <Link to="/books">Search for Books</Link>
-                <Link to="/addbook">Add New Book</Link>
-                <Link to="addauthor">Add New Author</Link>
-            </AppBar>
-            <main>
-                <Outlet />
-            </main>
-        </>
+        <AuthProvider>
+            <App />
+        </AuthProvider>
     );
 }
 
