@@ -20,14 +20,20 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
 	// store: ... , // Use an external store for consistency across multiple server instances.
 })
-
+app.set('trust proxy', 1);
 app.use(limiter);
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["https://orangeblossom.xyz"]
+        }
+    }
+}));
 app.use(cookieParser());
 app.use(express.json());
 app.use(cors({
     credentials: true,
-    origin: "http://localhost:5173",
+    origin: "https://www.orangeblossom.xyz",
     optionsSuccessStatus: 200,
 }));
 
