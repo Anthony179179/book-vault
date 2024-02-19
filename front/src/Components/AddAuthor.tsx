@@ -3,7 +3,7 @@ import { NewAuthor, getAxiosErrorMessages } from "./utils";
 import axios from "axios";
 import { Alert, Button, Snackbar, TextField } from "@mui/material";
 
-axios.defaults.baseURL = "http://localhost:3000";
+axios.defaults.baseURL = "https://orangeblossom.xyz";
 
 function AddAuthor() {
     let [messages, setMessages] = useState<string[]>([]);

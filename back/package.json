@@ -5,6 +5,7 @@
         "start": "cd out && node server.js",
         "watch": "npm run build && tsc-watch --onSuccess \"npm run start\"",
         "all": "npm run setup && npm run build && npm run start",
+        "all2": "npm run setup && npm run build && cd out && npx pm2 start server.js",
         "test": "jest --runInBand --rootDir=src"
     },
     "type": "module",
